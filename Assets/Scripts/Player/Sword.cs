@@ -8,11 +8,15 @@ public class Sword : MonoBehaviour
     [SerializeField] private GameObject slashAnimPrefab;
     [SerializeField] private Transform slashAnimSpawnPoint;
     [SerializeField] private Transform weaponCollider;
+    [SerializeField] private float swordAttackCD = 0.5f;
+
+    private float timeBetweenAttacks = 1f;
 
     private PlayerControls playerControls;
     private Animator anim;
     private PlayerController playerController;
     private ActiveWeapon activeWeapon;
+    private bool attackButtonDown, isAttacking = false;
 
     private GameObject slashAnim;
 
@@ -31,15 +35,42 @@ public class Sword : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        playerControls.Combat.Attack.started += _ => Attack();
+        playerControls.Combat.Attack.started += _ => StartAttacking();
+        playerControls.Combat.Attack.canceled += _ => StopAttacking();
+    }
+    void Update()
+    {
+        MouseFollowWithOffset();
+        Attack();
+    }
+
+    private void StartAttacking()
+    {
+        attackButtonDown = true;
+    }
+    private void StopAttacking()
+    {
+        attackButtonDown = false;
     }
     private void Attack()
     {
-        anim.SetTrigger("Attack");
-        weaponCollider.gameObject.SetActive(true);
+        if(attackButtonDown && !isAttacking)
+        {
+            isAttacking = true;
+            anim.SetTrigger("Attack");
+            weaponCollider.gameObject.SetActive(true);
 
-        slashAnim = Instantiate(slashAnimPrefab, slashAnimSpawnPoint.position, Quaternion.identity);
-        slashAnim.transform.parent = this.transform.parent;
+            slashAnim = Instantiate(slashAnimPrefab, slashAnimSpawnPoint.position, Quaternion.identity);
+            slashAnim.transform.parent = this.transform.parent;
+            StartCoroutine(AttackCDRoutine());
+        }
+        
+    }
+    IEnumerator AttackCDRoutine()
+    {
+        yield return new WaitForSeconds(swordAttackCD);
+        isAttacking = false;
+        
     }
 
     public void DoneAttackingAnimEvent()
@@ -86,8 +117,5 @@ public class Sword : MonoBehaviour
         }
     }
     // Update is called once per frame
-    void Update()
-    {
-        MouseFollowWithOffset();
-    }
+    
 }
